@@ -1,0 +1,233 @@
+import java.io.*;
+import java.util.*;
+
+// ====================== Student Class (for Serialization) ======================
+class Student implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private int studentID;
+    private String name;
+    private double grade;
+
+    public Student(int studentID, String name, double grade) {
+        this.studentID = studentID;
+        this.name = name;
+        this.grade = grade;
+    }
+
+    @Override
+    public String toString() {
+        return "\nStudent ID: " + studentID + "\nName: " + name + "\nGrade: " + grade;
+    }
+}
+
+// ====================== Employee Class (for File Handling) ======================
+class Employee implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private int id;
+    private String name;
+    private String designation;
+    private double salary;
+
+    public Employee(int id, String name, String designation, double salary) {
+        this.id = id;
+        this.name = name;
+        this.designation = designation;
+        this.salary = salary;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("ID: %d | Name: %s | Designation: %s | Salary: %.2f", id, name, designation, salary);
+    }
+}
+
+// Custom ObjectOutputStream to allow appending serialized objects to a file
+class AppendableObjectOutputStream extends ObjectOutputStream {
+    public AppendableObjectOutputStream(OutputStream out) throws IOException {
+        super(out);
+    }
+
+    @Override
+    protected void writeStreamHeader() throws IOException {
+        reset(); // avoid writing a header again when appending
+    }
+}
+
+// ====================== Main Program ======================
+public class DataProcessingDemo {
+
+    private static final String STUDENT_FILE = "student.dat";
+    private static final String EMPLOYEE_FILE = "employees.dat";
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int choice;
+
+        do {
+            System.out.println("\n========= DATA PROCESSING & MANAGEMENT =========");
+            System.out.println("1. Sum of Integers (Autoboxing & Unboxing)");
+            System.out.println("2. Serialize & Deserialize Student Object");
+            System.out.println("3. Employee Management System (File Handling)");
+            System.out.println("4. Exit");
+            System.out.print("Enter your choice: ");
+            choice = sc.nextInt();
+
+            switch (choice) {
+                case 1:
+                    sumOfIntegers(sc);
+                    break;
+                case 2:
+                    studentSerialization(sc);
+                    break;
+                case 3:
+                    employeeManagementMenu(sc);
+                    break;
+                case 4:
+                    System.out.println("Exiting... Thank you!");
+                    break;
+                default:
+                    System.out.println("Invalid choice! Try again.");
+            }
+        } while (choice != 4);
+
+        sc.close();
+    }
+
+    // ====================== Part A: Autoboxing & Unboxing ======================
+    private static void sumOfIntegers(Scanner sc) {
+        ArrayList<Integer> numbers = new ArrayList<>();
+        System.out.println("\nEnter integers (type 'done' to finish):");
+
+        while (true) {
+            String input = sc.next();
+            if (input.equalsIgnoreCase("done"))
+                break;
+
+            try {
+                int num = Integer.parseInt(input);  // String -> int
+                numbers.add(num);                   // Autoboxing (int -> Integer)
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input! Please enter integers only.");
+            }
+        }
+
+        int sum = 0;
+        for (Integer n : numbers) {
+            sum += n; // Unboxing (Integer -> int)
+        }
+
+        System.out.println("Sum of entered integers: " + sum);
+    }
+
+    // ====================== Part B: Serialization of Student ======================
+    private static void studentSerialization(Scanner sc) {
+        try {
+            System.out.print("\nEnter Student ID: ");
+            int id = sc.nextInt();
+            sc.nextLine();
+            System.out.print("Enter Student Name: ");
+            String name = sc.nextLine();
+            System.out.print("Enter Grade: ");
+            double grade = sc.nextDouble();
+
+            Student student = new Student(id, name, grade);
+
+            // Serialize
+            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(STUDENT_FILE));
+            oos.writeObject(student);
+            oos.close();
+            System.out.println("\nStudent object serialized successfully!");
+
+            // Deserialize
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(STUDENT_FILE));
+            Student deserialized = (Student) ois.readObject();
+            ois.close();
+
+            System.out.println("\nDeserialized Student Data:");
+            System.out.println(deserialized);
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ====================== Part C: Employee Management System ======================
+    private static void employeeManagementMenu(Scanner sc) {
+        int choice;
+        do {
+            System.out.println("\n===== EMPLOYEE MANAGEMENT SYSTEM =====");
+            System.out.println("1. Add Employee");
+            System.out.println("2. Display All Employees");
+            System.out.println("3. Back to Main Menu");
+            System.out.print("Enter your choice: ");
+            choice = sc.nextInt();
+
+            switch (choice) {
+                case 1:
+                    addEmployee(sc);
+                    break;
+                case 2:
+                    displayEmployees();
+                    break;
+                case 3:
+                    System.out.println("Returning to Main Menu...");
+                    break;
+                default:
+                    System.out.println("Invalid choice! Try again.");
+            }
+        } while (choice != 3);
+    }
+
+    private static void addEmployee(Scanner sc) {
+        try {
+            System.out.print("Enter Employee ID: ");
+            int id = sc.nextInt();
+            sc.nextLine();
+            System.out.print("Enter Name: ");
+            String name = sc.nextLine();
+            System.out.print("Enter Designation: ");
+            String designation = sc.nextLine();
+            System.out.print("Enter Salary: ");
+            double salary = sc.nextDouble();
+
+            Employee emp = new Employee(id, name, designation, salary);
+
+            File file = new File(EMPLOYEE_FILE);
+            ObjectOutputStream oos;
+
+            if (file.exists()) {
+                oos = new AppendableObjectOutputStream(new FileOutputStream(file, true));
+            } else {
+                oos = new ObjectOutputStream(new FileOutputStream(file));
+            }
+
+            oos.writeObject(emp);
+            oos.close();
+            System.out.println("Employee added successfully!");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void displayEmployees() {
+        try {
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(EMPLOYEE_FILE));
+
+            System.out.println("\n----- Employee Records -----");
+            while (true) {
+                try {
+                    Employee emp = (Employee) ois.readObject();
+                    System.out.println(emp);
+                } catch (EOFException e) {
+                    break; // End of file reached
+                }
+            }
+            ois.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("No employee records found!");
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
